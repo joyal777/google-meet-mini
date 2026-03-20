@@ -39,9 +39,9 @@ A full-stack video conferencing application built with React, Laravel, and Mongo
 
 <table>
   <tr>
-    <td><a href="https://raw.githubusercontent.com/YOUR_USERNAME/google-meet-mini/main/backend/public/login.png" target="_blank"><img src="https://raw.githubusercontent.com/YOUR_USERNAME/google-meet-mini/main/backend/public/login.png" width="300"/></a></td>
-    <td><a href="https://raw.githubusercontent.com/YOUR_USERNAME/google-meet-mini/main/backend/public/dashboard.png" target="_blank"><img src="https://raw.githubusercontent.com/YOUR_USERNAME/google-meet-mini/main/backend/public/dashboard.png" width="300"/></a></td>
-    <td><a href="https://raw.githubusercontent.com/YOUR_USERNAME/google-meet-mini/main/backend/public/room.png" target="_blank"><img src="https://raw.githubusercontent.com/YOUR_USERNAME/google-meet-mini/main/backend/public/room.png" width="300"/></a></td>
+    <td><a href="https://raw.githubusercontent.com/joyal777/google-meet-mini/main/frontend/public/login.png" target="_blank"><img src="https://raw.githubusercontent.com/joyal777/google-meet-mini/main/frontend/public/login.png" width="300"/></a></td>
+    <td><a href="https://raw.githubusercontent.com/joyal777/google-meet-mini/main/frontend/public/dashboard.png" target="_blank"><img src="https://raw.githubusercontent.com/joyal777/google-meet-mini/main/frontend/public/dashboard.png" width="300"/></a></td>
+    <td><a href="https://raw.githubusercontent.com/joyal777/google-meet-mini/main/frontend/public/room.png" target="_blank"><img src="https://raw.githubusercontent.com/joyal777/google-meet-mini/main/frontend/public/room.png" width="300"/></a></td>
   </tr>
 </table>
 
@@ -81,7 +81,7 @@ google-meet-mini/
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/YOUR_USERNAME/google-meet-mini.git
+git clone https://github.com/joyal777/google-meet-mini.git
 cd google-meet-mini
 ```
 
