@@ -34,12 +34,20 @@ io.on('connection', (socket) => {
         })
     })
 
-    // Broadcast media state changes to everyone else in the room
     socket.on('media-state', (data) => {
         socket.to(socket.roomId).emit('peer-media-state', {
             socketId: socket.id,
             video: data.video,
             audio: data.audio,
+        })
+    })
+
+    socket.on('chat-message', (data) => {
+        io.to(socket.roomId).emit('chat-message', {
+            id:        Date.now(),
+            userName:  data.userName,
+            message:   data.message,
+            timestamp: new Date().toISOString(),
         })
     })
 

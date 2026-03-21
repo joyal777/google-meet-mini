@@ -12,5 +12,5 @@ export default defineConfig({
       stream: 'stream-browserify',
       events: 'eventemitter3',
     }
-  }
+  },
 })
