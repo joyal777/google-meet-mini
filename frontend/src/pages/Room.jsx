@@ -5,7 +5,11 @@ import { useAuth } from '../context/AuthContext'
 import Avatar from '../components/Avatar'
 import ChatSidebar from '../components/ChatSidebar'
 import api from '../api/axios'
-import { MessageSquare } from 'lucide-react'
+import {
+    Mic, MicOff, Video, VideoOff,
+    PhoneOff, MessageSquare, Crown,
+    VolumeX
+} from 'lucide-react'
 
 function getGridStyle(count) {
     if (count === 1) return { gridTemplateColumns: '1fr' }
@@ -92,15 +96,12 @@ function Room() {
                 streamRef.current = stream
                 if (myVideo.current) myVideo.current.srcObject = stream
 
-                // Only emit join-room ONCE after socket connects
                 socket.on('connect', () => {
                     console.log('Socket connected:', socket.id)
                     socket.emit('join-room', roomId, socket.id, user?.name)
                 })
 
-                // In case socket already connected before listener was added
                 if (socket.connected) {
-                    console.log('Socket already connected:', socket.id)
                     socket.emit('join-room', roomId, socket.id, user?.name)
                 }
 
@@ -108,15 +109,9 @@ function Room() {
 
                 socket.on('user-connected', async (socketId, userName) => {
                     console.log('user-connected:', userName, socketId)
-                    // Prevent connecting to self
-                    if (socketId === socket.id) {
-                        console.warn('Ignoring self connection')
-                        return
-                    }
-                    if (pcsRef.current[socketId]) {
-                        console.warn('PC already exists for', socketId)
-                        return
-                    }
+                    if (socketId === socket.id) return
+                    if (pcsRef.current[socketId]) return
+
                     const pc = createPC(socketId, userName, stream)
                     pcsRef.current[socketId] = { pc, name: userName }
                     const offer = await pc.createOffer()
@@ -129,18 +124,10 @@ function Room() {
                 })
 
                 socket.on('signal', async ({ from, signal, name }) => {
-                    // Prevent handling signal from self
-                    if (from === socket.id) {
-                        console.warn('Ignoring signal from self')
-                        return
-                    }
-                    console.log('Signal received:', signal.type || 'ice', 'from:', from)
+                    if (from === socket.id) return
 
                     if (signal.type === 'offer') {
-                        if (pcsRef.current[from]) {
-                            console.warn('PC already exists for offer from', from)
-                            return
-                        }
+                        if (pcsRef.current[from]) return
                         const pc = createPC(from, name, stream)
                         pcsRef.current[from] = { pc, name }
                         await pc.setRemoteDescription(new RTCSessionDescription(signal))
@@ -172,7 +159,6 @@ function Room() {
                 })
 
                 socket.on('user-disconnected', socketId => {
-                    console.log('user-disconnected:', socketId)
                     const entry = pcsRef.current[socketId]
                     if (entry) {
                         const name = entry.name
@@ -198,13 +184,8 @@ function Room() {
     }, [roomId])
 
     const createPC = (socketId, name, stream) => {
-        console.log('Creating PC for:', name, socketId)
         const pc = new RTCPeerConnection(ICE_SERVERS)
-
-        stream.getTracks().forEach(track => {
-            console.log('Adding track:', track.kind, 'for', name)
-            pc.addTrack(track, stream)
-        })
+        stream.getTracks().forEach(track => pc.addTrack(track, stream))
 
         pc.onicecandidate = (e) => {
             if (e.candidate) {
@@ -217,12 +198,8 @@ function Room() {
         }
 
         pc.ontrack = (e) => {
-            console.log('Got track from:', name, 'streams:', e.streams.length)
             const remoteStream = e.streams[0]
-            if (!remoteStream) {
-                console.error('No stream in ontrack!')
-                return
-            }
+            if (!remoteStream) return
             setPeers(prev => {
                 const exists = prev.find(p => p.socketId === socketId)
                 if (exists) {
@@ -231,8 +208,7 @@ function Room() {
                     )
                 }
                 return [...prev, {
-                    socketId,
-                    name,
+                    socketId, name,
                     stream: remoteStream,
                     videoOff: false,
                     audioOff: false
@@ -242,10 +218,6 @@ function Room() {
 
         pc.onconnectionstatechange = () => {
             console.log(`Connection (${name}):`, pc.connectionState)
-        }
-
-        pc.onicegatheringstatechange = () => {
-            console.log(`ICE gathering (${name}):`, pc.iceGatheringState)
         }
 
         return pc
@@ -279,7 +251,7 @@ function Room() {
     if (error) return (
         <div style={styles.errorScreen}>
             <p style={{ color: '#fff', marginBottom: '1rem' }}>{error}</p>
-            <button style={styles.btn} onClick={() => navigate('/dashboard')}>
+            <button style={styles.btnRed} onClick={() => navigate('/dashboard')}>
                 Back to Dashboard
             </button>
         </div>
@@ -291,19 +263,29 @@ function Room() {
             {/* Header */}
             <div style={styles.header}>
                 <div style={styles.headerLeft}>
+                    <Video size={14} color="#64748b" />
                     <span style={styles.roomCode}>{roomId}</span>
-                    {isHost && <span style={styles.hostBadge}>Host</span>}
+                    {isHost && (
+                        <span style={styles.hostBadge}>
+                            <Crown size={10} color="#1a1a2e" />
+                            Host
+                        </span>
+                    )}
                 </div>
                 <div style={styles.participantsList}>
                     {liveParticipants.map((p, i) => (
                         <div key={i} style={styles.chip}>
-                            <Avatar name={p.name} size={22} fontSize={9} />
+                            <Avatar name={p.name} size={20} fontSize={8} />
                             <span style={styles.chipName}>{p.name}</span>
-                            {roomData?.host_name === p.name && <span style={styles.hostTag}>host</span>}
+                            {roomData?.host_name === p.name && (
+                                <span style={styles.hostTag}>host</span>
+                            )}
                         </div>
                     ))}
                 </div>
-                <span style={styles.count}>{totalCount} participant{totalCount !== 1 ? 's' : ''}</span>
+                <span style={styles.count}>
+                    {totalCount} participant{totalCount !== 1 ? 's' : ''}
+                </span>
             </div>
 
             {/* Body */}
@@ -311,6 +293,8 @@ function Room() {
 
                 {/* Video Grid */}
                 <div style={{ ...styles.grid, ...getGridStyle(totalCount) }}>
+
+                    {/* My Video */}
                     <div style={styles.videoBox}>
                         {videoOff ? (
                             <div style={styles.avatarBox}>
@@ -320,20 +304,38 @@ function Room() {
                             <video ref={myVideo} autoPlay muted playsInline style={styles.video} />
                         )}
                         <div style={styles.nameTag}>
-                            {user?.name} (You) {isHost ? '♛' : ''}
+                            <span>{user?.name} (You)</span>
+                            {isHost && <Crown size={11} color="#f59e0b" style={{ marginLeft: '4px' }} />}
                         </div>
                         <div style={styles.badgeRow}>
-                            {muted && <span style={styles.badge}>Muted</span>}
-                            {videoOff && <span style={styles.badge}>Cam Off</span>}
+                            {muted && (
+                                <span style={styles.badge}>
+                                    <MicOff size={10} color="#fff" />
+                                    <span>Muted</span>
+                                </span>
+                            )}
+                            {videoOff && (
+                                <span style={styles.badge}>
+                                    <VideoOff size={10} color="#fff" />
+                                    <span>Cam Off</span>
+                                </span>
+                            )}
                         </div>
                     </div>
 
+                    {/* Remote Peers */}
                     {peers.map(({ socketId, name, stream, videoOff: pvo, audioOff: pao }) => (
-                        <PeerVideo key={socketId} stream={stream} name={name} videoOff={pvo} audioOff={pao} />
+                        <PeerVideo
+                            key={socketId}
+                            stream={stream}
+                            name={name}
+                            videoOff={pvo}
+                            audioOff={pao}
+                        />
                     ))}
                 </div>
 
-                {/* Chat — always mounted so socket listener stays alive */}
+                {/* Chat Sidebar */}
                 <div style={{ display: chatOpen ? 'flex' : 'none', height: '100%' }}>
                     {socketReady && (
                         <ChatSidebar
@@ -349,28 +351,52 @@ function Room() {
 
             {/* Controls */}
             <div style={styles.controls}>
-                <button style={muted ? styles.btnOff : styles.btn} onClick={toggleMute}>
-                    <span style={styles.btnIcon}>{muted ? '🔇' : '🎤'}</span>
+
+                <button
+                    style={muted ? styles.btnActive : styles.btnControl}
+                    onClick={toggleMute}
+                    title={muted ? 'Unmute' : 'Mute'}
+                >
+                    {muted
+                        ? <MicOff size={18} color="#fff" />
+                        : <Mic size={18} color="#fff" />
+                    }
                     <span style={styles.btnLabel}>{muted ? 'Unmute' : 'Mute'}</span>
                 </button>
-                <button style={styles.btnRed} onClick={leaveRoom}>
-                    <span style={styles.btnIcon}>📵</span>
-                    <span style={styles.btnLabel}>Leave</span>
-                </button>
-                <button style={videoOff ? styles.btnOff : styles.btn} onClick={toggleVideo}>
-                    <span style={styles.btnIcon}>{videoOff ? '📷' : '📹'}</span>
+
+                <button
+                    style={videoOff ? styles.btnActive : styles.btnControl}
+                    onClick={toggleVideo}
+                    title={videoOff ? 'Start Camera' : 'Stop Camera'}
+                >
+                    {videoOff
+                        ? <VideoOff size={18} color="#fff" />
+                        : <Video size={18} color="#fff" />
+                    }
                     <span style={styles.btnLabel}>{videoOff ? 'Start Cam' : 'Stop Cam'}</span>
                 </button>
+
                 <button
-                    style={{ ...styles.btn, position: 'relative' }}
+                    style={{ ...styles.btnControl, position: 'relative' }}
                     onClick={() => { setChatOpen(o => !o); setUnreadCount(0) }}
+                    title="Chat"
                 >
-                    <MessageSquare size={18} />
+                    <MessageSquare size={18} color="#fff" />
                     <span style={styles.btnLabel}>Chat</span>
                     {unreadCount > 0 && (
                         <span style={styles.unreadBadge}>{unreadCount}</span>
                     )}
                 </button>
+
+                <button
+                    style={styles.btnLeave}
+                    onClick={leaveRoom}
+                    title="Leave"
+                >
+                    <PhoneOff size={18} color="#fff" />
+                    <span style={styles.btnLabel}>Leave</span>
+                </button>
+
             </div>
         </div>
     )
@@ -397,42 +423,153 @@ function PeerVideo({ stream, name, videoOff, audioOff }) {
                     <Avatar name={name} size={80} fontSize={28} />
                 </div>
             )}
-            <div style={styles.nameTag}>{name}</div>
+            <div style={styles.nameTag}>
+                <span>{name}</span>
+            </div>
             <div style={styles.badgeRow}>
-                {audioOff && <span style={styles.badge}>Muted</span>}
-                {videoOff && <span style={styles.badge}>Cam Off</span>}
+                {audioOff && (
+                    <span style={styles.badge}>
+                        <VolumeX size={10} color="#fff" />
+                        <span>Muted</span>
+                    </span>
+                )}
+                {videoOff && (
+                    <span style={styles.badge}>
+                        <VideoOff size={10} color="#fff" />
+                        <span>Cam Off</span>
+                    </span>
+                )}
             </div>
         </div>
     )
 }
 
 const styles = {
-    container: { display: 'flex', flexDirection: 'column', height: '100vh', background: '#1a1a2e', color: '#fff', fontFamily: "'Google Sans', sans-serif" },
-    errorScreen: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#1a1a2e', color: '#fff', gap: '1rem' },
-    header: { padding: '0.6rem 1.5rem', background: '#16213e', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', flexShrink: 0 },
+    container: {
+        display: 'flex', flexDirection: 'column',
+        height: '100vh', background: '#0f172a',
+        color: '#fff', fontFamily: "'Google Sans', sans-serif"
+    },
+    errorScreen: {
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        height: '100vh', background: '#0f172a',
+        color: '#fff', gap: '1rem'
+    },
+    header: {
+        padding: '0.6rem 1.5rem', background: '#1e293b',
+        display: 'flex', alignItems: 'center',
+        justifyContent: 'space-between', gap: '1rem',
+        flexWrap: 'wrap', flexShrink: 0,
+        borderBottom: '1px solid rgba(255,255,255,0.06)'
+    },
     headerLeft: { display: 'flex', alignItems: 'center', gap: '8px' },
-    roomCode: { fontSize: '13px', color: '#a0aec0', fontWeight: 500 },
-    hostBadge: { background: '#f59e0b', color: '#1a1a2e', fontSize: '10px', fontWeight: 600, padding: '2px 8px', borderRadius: '20px' },
-    hostTag: { background: 'rgba(245,158,11,0.2)', color: '#f59e0b', fontSize: '9px', padding: '1px 5px', borderRadius: '4px' },
+    roomCode: { fontSize: '13px', color: '#94a3b8', fontWeight: 500 },
+    hostBadge: {
+        display: 'flex', alignItems: 'center', gap: '4px',
+        background: '#f59e0b', color: '#1a1a2e',
+        fontSize: '10px', fontWeight: 600,
+        padding: '2px 8px', borderRadius: '20px'
+    },
+    hostTag: {
+        background: 'rgba(245,158,11,0.15)',
+        color: '#f59e0b', fontSize: '9px',
+        padding: '1px 5px', borderRadius: '4px'
+    },
     participantsList: { display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' },
-    chip: { display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(255,255,255,0.08)', padding: '3px 8px', borderRadius: '20px' },
-    chipName: { fontSize: '11px', color: '#e2e8f0' },
-    count: { fontSize: '12px', color: '#718096', whiteSpace: 'nowrap' },
+    chip: {
+        display: 'flex', alignItems: 'center', gap: '5px',
+        background: 'rgba(255,255,255,0.06)',
+        padding: '3px 8px', borderRadius: '20px'
+    },
+    chipName: { fontSize: '11px', color: '#cbd5e1' },
+    count: { fontSize: '12px', color: '#475569', whiteSpace: 'nowrap' },
     body: { flex: 1, display: 'flex', overflow: 'hidden' },
-    grid: { flex: 1, display: 'grid', gap: '10px', padding: '12px', overflowY: 'auto', alignContent: 'start' },
-    videoBox: { position: 'relative', background: '#0d0d1f', borderRadius: '12px', overflow: 'hidden', minHeight: '220px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-    avatarBox: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', minHeight: '220px', position: 'absolute', top: 0, left: 0 },
+    grid: {
+        flex: 1, display: 'grid', gap: '10px',
+        padding: '12px', overflowY: 'auto', alignContent: 'start'
+    },
+    videoBox: {
+        position: 'relative', background: '#0d0d1f',
+        borderRadius: '12px', overflow: 'hidden',
+        minHeight: '220px', display: 'flex',
+        alignItems: 'center', justifyContent: 'center',
+        border: '1px solid rgba(255,255,255,0.04)'
+    },
+    avatarBox: {
+        display: 'flex', alignItems: 'center',
+        justifyContent: 'center', width: '100%',
+        height: '100%', minHeight: '220px',
+        position: 'absolute', top: 0, left: 0
+    },
     video: { width: '100%', height: '100%', objectFit: 'cover', borderRadius: '12px' },
-    nameTag: { position: 'absolute', bottom: '10px', left: '10px', background: 'rgba(0,0,0,0.65)', padding: '3px 10px', borderRadius: '6px', fontSize: '12px', color: '#fff', zIndex: 2 },
-    badgeRow: { position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '4px', zIndex: 2 },
-    badge: { background: 'rgba(0,0,0,0.6)', borderRadius: '6px', padding: '3px 7px', fontSize: '11px', color: '#fff' },
-    controls: { display: 'flex', justifyContent: 'center', gap: '1rem', padding: '1rem 1.5rem', background: '#16213e', flexShrink: 0 },
-    btn: { display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px 20px', background: '#2d3748', color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', gap: '3px', position: 'relative' },
-    btnOff: { display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px 20px', background: '#4a5568', color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', gap: '3px' },
-    btnRed: { display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px 20px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', gap: '3px' },
-    btnIcon: { fontSize: '18px' },
-    btnLabel: { fontSize: '11px', fontWeight: 500 },
-    unreadBadge: { position: 'absolute', top: '6px', right: '6px', background: '#ef4444', color: '#fff', fontSize: '10px', fontWeight: 700, borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+    nameTag: {
+        position: 'absolute', bottom: '10px', left: '10px',
+        background: 'rgba(0,0,0,0.7)',
+        padding: '3px 10px', borderRadius: '6px',
+        fontSize: '12px', color: '#fff', zIndex: 2,
+        display: 'flex', alignItems: 'center', gap: '4px'
+    },
+    badgeRow: {
+        position: 'absolute', top: '10px', right: '10px',
+        display: 'flex', gap: '4px', zIndex: 2
+    },
+    badge: {
+        display: 'flex', alignItems: 'center', gap: '4px',
+        background: 'rgba(0,0,0,0.65)',
+        borderRadius: '6px', padding: '3px 7px',
+        fontSize: '11px', color: '#fff'
+    },
+    controls: {
+        display: 'flex', justifyContent: 'center',
+        gap: '0.75rem', padding: '1rem 1.5rem',
+        background: '#1e293b', flexShrink: 0,
+        borderTop: '1px solid rgba(255,255,255,0.06)'
+    },
+    btnControl: {
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', padding: '10px 22px',
+        background: '#334155', color: '#fff',
+        border: 'none', borderRadius: '10px',
+        cursor: 'pointer', gap: '4px',
+        transition: 'background 0.15s'
+    },
+    btnActive: {
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', padding: '10px 22px',
+        background: '#475569', color: '#fff',
+        border: 'none', borderRadius: '10px',
+        cursor: 'pointer', gap: '4px'
+    },
+    btnLeave: {
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', padding: '10px 22px',
+        background: '#dc2626', color: '#fff',
+        border: 'none', borderRadius: '10px',
+        cursor: 'pointer', gap: '4px'
+    },
+    btnLabel: { fontSize: '11px', fontWeight: 500, color: '#cbd5e1' },
+    unreadBadge: {
+        position: 'absolute', top: '6px', right: '6px',
+        background: '#ef4444', color: '#fff',
+        fontSize: '10px', fontWeight: 700,
+        borderRadius: '50%', width: '16px', height: '16px',
+        display: 'flex', alignItems: 'center', justifyContent: 'center'
+    },
+    btn: {
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', padding: '10px 22px',
+        background: '#334155', color: '#fff',
+        border: 'none', borderRadius: '10px',
+        cursor: 'pointer', gap: '4px'
+    },
+    btnRed: {
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', padding: '10px 22px',
+        background: '#dc2626', color: '#fff',
+        border: 'none', borderRadius: '10px',
+        cursor: 'pointer', gap: '4px'
+    },
 }
 
 export default Room
