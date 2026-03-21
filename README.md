@@ -46,6 +46,11 @@ A full-stack video conferencing application built with React, Laravel, and Mongo
     <td><a href="https://raw.githubusercontent.com/joyal777/google-meet-mini/main/frontend/public/dashboard.png" target="_blank"><img src="https://raw.githubusercontent.com/joyal777/google-meet-mini/main/frontend/public/dashboard.png" width="300"/></a></td>
     <td><a href="https://raw.githubusercontent.com/joyal777/google-meet-mini/main/frontend/public/room.png" target="_blank"><img src="https://raw.githubusercontent.com/joyal777/google-meet-mini/main/frontend/public/room.png" width="300"/></a></td>
   </tr>
+  <tr>
+    <td><a href="https://raw.githubusercontent.com/joyal777/google-meet-mini/main/frontend/public/chat-box.png" target="_blank"><img src="https://raw.githubusercontent.com/joyal777/google-meet-mini/main/frontend/public/chat-box.png" width="300"/></a></td>
+    <td><a href="https://raw.githubusercontent.com/joyal777/google-meet-mini/main/frontend/public/chat-notification.png" target="_blank"><img src="https://raw.githubusercontent.com/joyal777/google-meet-mini/main/frontend/public/chat-notification.png" width="300"/></a></td>
+    <td><a href="https://raw.githubusercontent.com/joyal777/google-meet-mini/main/frontend/public/history-live-statu.png" target="_blank"><img src="https://raw.githubusercontent.com/joyal777/google-meet-mini/main/frontend/public/history-live-statu.png" width="300"/></a></td>
+  </tr>
 </table>
 
 ## Project Structure
