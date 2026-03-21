@@ -203,6 +203,10 @@ node server.js
 7. In-call chat messages are sent via Socket.io and saved to MongoDB
 8. When host leaves, room is marked inactive — history and participants are preserved
 
+## Tips:
+
+use ngork to connect to test in phone for multi-camera
+
 ## Built With
 
 This project was built as a portfolio project to demonstrate full-stack development skills with React, Laravel, MongoDB, WebRTC, and real-time communication using Socket.io.
